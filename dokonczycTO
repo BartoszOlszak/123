@@ -26,8 +26,8 @@ int convert(int k, int orient) {
 vector<int> steer(int k1, int k2, int k, int orient) {
 	int cte = convert(k, orient);
 	if (cte > -1 && cte < 1) {
-		k1 = 10;
-		k2 = 10;
+		k1 = 20;
+		k2 = 20;
 	}
 	else if (cte > 0) {
 		
