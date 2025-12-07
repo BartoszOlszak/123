@@ -15,7 +15,7 @@ Comm::NXTComm comm;
 //CZUJNIKI SA INICJOWANE PRZED PETLA NIESKONCZONA,
 //CZUJNIKI SA DEAKTYWOWANE ZA PETLA NIESKONCZONA, LUB PO KOMENDZIE k,
 
-int convert(int k, int orient) {
+int convert(int k, int orient) { // funkcja pokazuje ile stopni od orientu jest cel (minusowe wartosci to orient jest na lewo od celu)
 	orient = orient - k;
 	if (orient > 180) orient = orient - 360;
 	else if (orient < -180) orient = 360 + orient;
@@ -23,15 +23,29 @@ int convert(int k, int orient) {
 }
 
 
-vector<int> steer(int k1, int k2, int k, int orient) {
+vector<int> steer(int k1, int k2, int k, int orient, int ksi) {
 	int cte = convert(k, orient);
-	if (cte > -1 && cte < 1) {
-		k1 = 20;
-		k2 = 20;
+
+	else if (cte <= 0) {
+		if (abs(cte)>k1){ // k1 to predkosc lewego kola
+			k2 = 0;
+		}
+		else {
+			k2 = k1 + (ksi * cte);
+		}
 	}
 	else if (cte > 0) {
-		
+		if (cte > k2) {
+			k1 = 0;
+		}
+		else {
+			k1 = k2 - (ksi * cte);
+		}
 	}
+	vector<int> v;
+	v.push_back(k1);
+	v.push_back(k2);
+	return v;
 }
 
 
@@ -47,7 +61,7 @@ int main()
 		cout << "\nDostepna pamiec flash = " << NXT::GetAvailableFlash(&comm);
 
 		int x = 20;//szybkość jazdy w przód i tył
-		int xtemp =210;//potrzebna do sprawdzania czy predkosc sie zmienila
+		int xtemp =20;//potrzebna do sprawdzania czy predkosc sie zmienila
 
 		int y = 20;//szybkość obrotu w lewo, prawo
 		int ytemp = 20;//potrzebna do sprawdzania czy predkosc sie zmienila
@@ -79,6 +93,7 @@ int main()
 		cout << "\n U - odczyt z sonaru";
 		cout << "\n C - odczyt nasycenia koloru";
 		cout << "\n H - Zatrzymanie silnikow";
+        cout << "\n N - Jazda z radarem";
 		cout << "\nK - Koniec Programu";
 
 		do
@@ -191,6 +206,31 @@ int main()
 					cout << "\nNasycenie swaitla = " << color;
 				}
 
+                if (decyzja == 'N' || decyzja == 'n') // jazda z radarem
+				{
+					do {
+						orientacja = 2 * NXT::Sensor::GetSonarValue(&comm, IN_3);
+						Wait(50);
+						vector<int> v1 = steer(k1, k2, kierunek, orientacja, 1);
+						k1 = v1[0];
+						k2 = v1[1];
+						NXT::Motor::SetForward(&comm, OUT_B, k1); //dostosowac kola wyjscie b ma byc kolem lewym (k1)
+						NXT::Motor::SetForward(&comm, OUT_C, k2);
+
+						if (kbhit() == true) {
+							decyzja = getch();
+							if (decyzja == 'M' || decyzja == 'm')
+							{
+								NXT::Motor::SetForward(&comm, OUT_B, 0);
+								NXT::Motor::SetForward(&comm, OUT_C, 0);
+								NXT::Motor::Stop(&comm, OUT_B, 0);
+								NXT::Motor::Stop(&comm, OUT_C, 0);
+								break;
+							}
+						}
+
+					} while (decyzja != 'M' || decyzja != 'm');
+                }
 
 				continue;
 			}
